@@ -1,0 +1,217 @@
+// Top-level build file where you can add configuration options common to all sub-projects/modules.
+
+apply from: this.file('./common.gradle')
+
+buildscript {
+    ext.kotlin_version = '1.3.21'
+    repositories {
+        google()
+        jcenter()
+
+    }
+    dependencies {
+        classpath 'com.android.tools.build:gradle:3.3.2'
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
+        // NOTE: Do not place your application dependencies here; they belong
+        // in the individual module build.gradle files
+    }
+}
+
+allprojects {
+    repositories {
+        google()
+        jcenter()
+
+    }
+}
+
+/**
+ * project相关api讲解
+ */
+this.getAllprojects()
+
+getProjects()
+//getParentPro()
+getRootPro()
+
+/**
+ * 通过`getAllProjects()`方法可以获取到所有的project，在Android中定义的每个module在这里都是一个project的定义
+ * @return
+ */
+def getProjects() {
+    println '------------'
+    println 'Root Project'
+    println('----------')
+    this.getAllprojects().eachWithIndex { Project project, int index ->
+        if (index == 0) {
+            println("Root Project:'${project.name} ")
+        } else {
+            println("+++ project name :${project.name}")
+        }
+    }
+}
+
+/**
+ * 获取parentProject
+ * @return
+ */
+def getParentPro() {
+    def name = this.getParent().name
+    println "the root project name is : ${name}"
+}
+
+/**
+ * 获取Root project
+ * @return
+ */
+def getRootPro() {
+    def name = this.getRootProject().name
+    println "root project name is : ${name}"
+}
+
+task clean(type: Delete) {
+    delete rootProject.buildDir
+}
+
+/**********************************************************************h/
+ *  子project管理方法
+ */
+
+/**
+ * 第一个参数是path，第二个参数是闭包。
+ * 如果第二个参数是闭包，可以直接写成如下的大括号的形式
+ *
+ *
+ * 通过project可以在根项目的build.gradle文件中配置所有子module配置，和在子工程中的配置是一样的、
+ *
+ * 不过一般不这样操作
+ */
+project('app') { Project project ->
+    apply plugin: 'com.android.application'
+    group 'com.kaycloud'
+    version '1.0.0-release'
+    dependencies {
+
+    }
+
+    dependencies {
+
+    }
+
+}
+
+/**
+ * 为所有的project进行统一的配置
+ * 配置当前project和所有的subProject
+ */
+allprojects {
+    group 'com.kaycloud'
+}
+
+/**
+ * 配置所有的子工程
+ */
+subprojects { Project project ->
+    //如果是应用了`com.android.library`这个plugin的project才执行这个操作
+    if (project.plugins.hasPlugin('com.android.library')) {
+
+    }
+
+}
+
+/**
+ * 在根工程定义的扩展属性，可以在subProject中直接调用
+ * 也就是说，父类中的所有属性，会被所有的子project继承，可以直接使用
+ *
+ *
+ * 扩展属性可以定义在一个单独的文件中，然后通过apply from来引入,在root Project中引入之后再subProject就可以直接使用了
+ *
+ * 或者是直接使用gradle.properties文件也是一样的效果
+ */
+ext {
+    compileSdkVer = 24
+}
+
+
+
+println project('sdk').group
+
+
+
+/************************************************************ 文件操作相关 ************/
+
+
+println getRootDir().absolutePath
+println getBuildDir().absolutePath
+println getProjectDir().absolutePath
+
+
+//println getContent('common.gradle')
+
+/**
+ * file(path) 方法会相对于当前project去寻找path，也就是相对路径
+ * files(path) 也是类似的用法 返回的是一个集合，可以遍历处理
+ * @param path
+ * @return
+ */
+def getContent(String path) {
+    try {
+        def file = file(path)
+        return file.text
+    } catch (GradleException e) {
+        println 'file not found'
+    }
+    return null
+}
+
+
+/****************************************** 依赖相关API ****/
+buildscript { ScriptHandler scriptHandler ->
+    //配置工程的仓库地址
+    repositories { RepositoryHandler repositoryHandler ->
+        repositoryHandler.jcenter()
+        repositoryHandler.mavenCentral()
+        repositoryHandler.maven {
+            name 'personal'
+            url 'http://localhost:909'
+            credentials {
+                username = 'admin'
+                password = 'admin123'
+            }
+        }
+        repositoryHandler.jcenter()
+        repositoryHandler.jcenter()
+
+    }
+
+    //配置工程的"插件"依赖地址,要跟project的dependencies参数区分,那个是工程的依赖地址
+    //这里是配置gradle本身使用的插件，根节点的那个是项目使用的
+    dependencies {
+        classpath 'com.android.tools.build:gradle:3.3.2' //
+//        classpath 'com.tencent.tinker-patch-graldle-plugin:1.7.7'
+    }
+}
+
+
+/************************************* 外部命令相关API *******************/
+
+task apkCopy{
+
+    //doLast里面的内容会在gradle的执行阶段才会去执行
+    doLast {
+        def sourcePath = this.findProject('app').buildDir.path + '/outputs/apk'
+        println 'sourcePath is '+ sourcePath
+        def destinationPath = '/Users/kaycloud/Downloads/'
+        def command = "mv -f ${sourcePath} ${destinationPath}"
+        exec {
+            try {
+                executable 'bash'
+                args '-c', command
+                println 'the command is execute success'
+            } catch (GradleException e) {
+                println e
+                println 'the command is execute error'
+            }
+        }
+    }
+}
